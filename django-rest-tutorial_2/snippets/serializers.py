@@ -1,15 +1,21 @@
+from django.contrib.auth.models import User
 from django.forms import widgets
+from django.contrib.auth.models import User
 
 from rest_framework import serializers
 from .models import Snippet, LANGUAGE_CHOICES, STYLE_CHOICES
 
+# ModelForm 클래스와 유사하게 동작함
 # Django에서 Form 클래스와 ModelForm 클래스를 제공하듯, 
 # REST 프레임워크에서도  Serializer 클래스와 ModelSerializer 클래스를 제공
 # 아래 클래스의 내용을 단축적으로 사용 가능
 class SnippetSerializer(serializers.ModelSerializer):
+	# ReadOnlyField는 직렬화에 사용되었을 땐 언제나 읽기 전용이므로, 모델의 인스턴스를 업데이트할 때는 사용할 수 없음
+	owner = serializers.ReadOnlyField(source='owner.username')
+
 	class Meta:
 		model = Snippet
-		fields = ['id', 'title', 'code', 'linenos', 'language', 'style']
+		fields = ['id', 'title', 'code', 'linenos', 'language', 'style', 'owner']
 
 '''
 # SnippetSerializer 클래스는 Snippet 모델의 정보들을 그대로 베낌
@@ -44,7 +50,11 @@ class SnippetSerializer(serializers.Serializer):\
 		instance.style = validated_data.get('style', instance.style)
 		instance.save()
 		return instance
-		
-# ModelForm 클래스와 유사하게 동작함
-
 '''
+# 'snippets'는 사용자 모델과 '반대 방향'으로 이어져 있기 때문에 ModelSerializer에 기본적으로 추가되지 않음. 따라서 명시적으로 필드를 지정 필요.
+class UserSerializer(serializers.ModelSerializer):
+	snippets = serializers.PrimaryKeyRelatedField(many=True, queryset=Snippet.objects.all())
+
+	class Meta:
+		model = User
+		fields = ['id', 'username', 'snippets']

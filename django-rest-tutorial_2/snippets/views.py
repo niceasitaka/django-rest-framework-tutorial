@@ -1,6 +1,7 @@
 #from django.http import HttpResponse
 #from django.http import Http404
 #from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User
 
 #from rest_framework.renderers import JSONRenderer
 #from rest_framework.parsers import JSONParser
@@ -10,9 +11,11 @@
 #from rest_framework.views import APIView
 #from rest_framework import mixins
 from rest_framework import generics
+from rest_framework import permissions
 
-from snippets.models import Snippet
-from snippets.serializers import SnippetSerializer
+from .models import Snippet
+from .serializers import SnippetSerializer, UserSerializer
+from .permissions import IsOwnerOrReadOnly
 
 # request.data 는 json 요청 뿐만 아니라 yaml과 같은 다른 포맷도 다룰 수 있습니다.
 
@@ -99,8 +102,15 @@ class SnippetList(mixins.ListModelMixin,
 
 # 위의 SnippetList 클래스를 ListCreateAPIView 을 통해 또다시 더욱 코드 간소화
 class SnippetList(generics.ListCreateAPIView):
-    queryset = Snippet.objects.all()
-    serializer_class = SnippetSerializer
+	queryset = Snippet.objects.all()
+	serializer_class = SnippetSerializer
+	# IsAuthenticatedOrReadOnly는 인증 받은 요청에 읽기와 쓰기 권한을 부여하고, 인증 받지 않은 요청에 대해서는 읽기 권한만 부여
+	permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+	
+	# 코드 조각을 만든 사용자를 연관시키기 위해 perform_create() 메소드를 오버라이딩
+	# 해당 코드 조각을 작성한 사용자와 연결
+	def perform_create(self, serializer):
+		serializer.save(owner=self.request.user)
 		
 
 ################################################################################
@@ -194,5 +204,26 @@ class SnippetDetail(mixins.RetrieveModelMixin,
 
 # 위의 SnippetDetail 클래스를 RetrieveUpdateDestroyAPIView 을 통해 또다시 더욱 코드 간소화
 class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Snippet.objects.all()
-    serializer_class = SnippetSerializer
+	queryset = Snippet.objects.all()
+	serializer_class = SnippetSerializer
+	permission_classes = (permissions.IsAuthenticatedOrReadOnly,
+							IsOwnerOrReadOnly,)
+							# IsOwnerOrReadOnly 는 permissions 에서 커스텀으로 설정한 권한 부여함
+	
+################################################################################
+
+# 사용자와 관련된 뷰
+'''
+- 코드 조각은 만든 사람과 연관이 있다.
+- 인증받은 사용자만 코드 조각을 만들 수 있다.
+- 해당 코드 조각을 만든 사람만, 이를 편집하거나 삭제할 수 있다.
+- 인증받지 않은 사용자는 '읽기 전용'으로만 사용 가능하다.
+'''
+# 읽기 전용 뷰만 있으면 되니까, 제네릭 클래스 기반 뷰 중에서 ListAPIView와 RetrieveAPIView를 사용
+class UserList(generics.ListAPIView):
+	queryset = User.objects.all()
+	serializer_class = UserSerializer
+
+class UserDetail(generics.RetrieveAPIView):
+	queryset = User.objects.all()
+	serializer_class = UserSerializer
