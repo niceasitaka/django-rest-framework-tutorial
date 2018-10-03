@@ -6,8 +6,10 @@ from django.contrib.auth.models import User
 #from rest_framework.renderers import JSONRenderer
 #from rest_framework.parsers import JSONParser
 #from rest_framework import status
-#from rest_framework.response import Response
-#from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework.reverse import reverse
+from rest_framework import renderers
 #from rest_framework.views import APIView
 #from rest_framework import mixins
 from rest_framework import generics
@@ -227,3 +229,26 @@ class UserList(generics.ListAPIView):
 class UserDetail(generics.RetrieveAPIView):
 	queryset = User.objects.all()
 	serializer_class = UserSerializer
+	
+################################################################################
+
+# API의 최상단에 대한 엔드 포인트 만들기
+# 지금까지 '코드 조각'과 '사용자'에 대한 엔드 포인트를 만들었지만, 아직까지 이렇다 할 API의 시작점은 없었기 때문에 이를 위한 함수 기반 뷰 구현
+@api_view(['GET',])
+def api_root(request, format=None):
+	return Response({
+		# urls.py 의 user-list 와 snippet-list (name) 으로 하이퍼링크
+		'users': reverse('user-list', request=request, format=format),
+		'snippets': reverse('snippet-list', request=request, format=format)
+	})
+	
+################################################################################
+
+# 코드 조각의 하이라이트 버전 보기
+class SnippetHighlight(generics.GenericAPIView):
+	queryset = Snippet.objects.all()
+	renderer_classes = (renderers.StaticHTMLRenderer,)
+
+	def get(self, request, *args, **kwargs):
+		snippet = self.get_object()
+		return Response(snippet.highlighted)
