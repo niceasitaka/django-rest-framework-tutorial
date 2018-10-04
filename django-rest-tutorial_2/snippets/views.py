@@ -244,7 +244,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 	serializer_class = UserSerializer
 
 ################################################################################
-
+'''
 # API의 최상단에 대한 엔드 포인트 만들기
 # 지금까지 '코드 조각'과 '사용자'에 대한 엔드 포인트를 만들었지만, 아직까지 이렇다 할 API의 시작점은 없었기 때문에 이를 위한 함수 기반 뷰 구현
 @api_view(['GET',])
@@ -254,7 +254,7 @@ def api_root(request, format=None):
 		'users': reverse('user-list', request=request, format=format),
 		'snippets': reverse('snippet-list', request=request, format=format)
 	})
-	
+'''	
 ################################################################################
 '''
 # 코드 조각의 하이라이트 버전 보기
