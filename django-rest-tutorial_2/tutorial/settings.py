@@ -128,5 +128,4 @@ STATIC_URL = '/static/'
 
 REST_FRAMEWORK = {
     'PAGE_SIZE': 5,
-	'PAGINATE_BY': 10,
 }

@@ -1,9 +1,9 @@
 from django.contrib.auth.models import User
-from django.forms import widgets
-from django.contrib.auth.models import User
+
 
 from rest_framework import serializers
-from .models import Snippet, LANGUAGE_CHOICES, STYLE_CHOICES
+from .models import Snippet
+# from .models import LANGUAGE_CHOICES, STYLE_CHOICES
 
 '''
 # SnippetSerializer 클래스는 Snippet 모델의 정보들을 그대로 베낌

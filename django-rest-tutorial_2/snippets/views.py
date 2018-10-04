@@ -14,6 +14,8 @@ from rest_framework import renderers
 #from rest_framework import mixins
 from rest_framework import generics
 from rest_framework import permissions
+from rest_framework import viewsets
+from rest_framework.decorators import detail_route
 
 from .models import Snippet
 from .serializers import SnippetSerializer, UserSerializer
@@ -101,7 +103,7 @@ class SnippetList(mixins.ListModelMixin,
 	def post(self, request, *args, **kwargs):
 		return self.create(request, *args, **kwargs)
 '''
-
+'''
 # 위의 SnippetList 클래스를 ListCreateAPIView 을 통해 또다시 더욱 코드 간소화
 class SnippetList(generics.ListCreateAPIView):
 	queryset = Snippet.objects.all()
@@ -113,7 +115,7 @@ class SnippetList(generics.ListCreateAPIView):
 	# 해당 코드 조각을 작성한 사용자와 연결
 	def perform_create(self, serializer):
 		serializer.save(owner=self.request.user)
-		
+'''		
 
 ################################################################################
 		
@@ -203,7 +205,7 @@ class SnippetDetail(mixins.RetrieveModelMixin,
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
 '''
-
+'''
 # 위의 SnippetDetail 클래스를 RetrieveUpdateDestroyAPIView 을 통해 또다시 더욱 코드 간소화
 class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
 	queryset = Snippet.objects.all()
@@ -211,7 +213,7 @@ class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
 	permission_classes = (permissions.IsAuthenticatedOrReadOnly,
 							IsOwnerOrReadOnly,)
 							# IsOwnerOrReadOnly 는 permissions 에서 커스텀으로 설정한 권한 부여함
-	
+'''	
 ################################################################################
 
 # 사용자와 관련된 뷰
@@ -221,6 +223,7 @@ class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
 - 해당 코드 조각을 만든 사람만, 이를 편집하거나 삭제할 수 있다.
 - 인증받지 않은 사용자는 '읽기 전용'으로만 사용 가능하다.
 '''
+'''
 # 읽기 전용 뷰만 있으면 되니까, 제네릭 클래스 기반 뷰 중에서 ListAPIView와 RetrieveAPIView를 사용
 class UserList(generics.ListAPIView):
 	queryset = User.objects.all()
@@ -229,7 +232,17 @@ class UserList(generics.ListAPIView):
 class UserDetail(generics.RetrieveAPIView):
 	queryset = User.objects.all()
 	serializer_class = UserSerializer
-	
+'''
+
+# 위의 UserList, UserDetail 뷰를 viewset 하나로 묶음
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+	# ReadOnlyModelViewSet 클래스는 '읽기 전용' 기능을 자동으로 지원
+	"""
+	이 뷰셋은 `list`와 `detail` 기능을 자동으로 지원합니다
+	"""
+	queryset = User.objects.all()
+	serializer_class = UserSerializer
+
 ################################################################################
 
 # API의 최상단에 대한 엔드 포인트 만들기
@@ -243,12 +256,44 @@ def api_root(request, format=None):
 	})
 	
 ################################################################################
-
+'''
 # 코드 조각의 하이라이트 버전 보기
 class SnippetHighlight(generics.GenericAPIView):
 	queryset = Snippet.objects.all()
 	renderer_classes = (renderers.StaticHTMLRenderer,)
+	# 미리 렌더링된 HTML을 사용
 
 	def get(self, request, *args, **kwargs):
 		snippet = self.get_object()
 		return Response(snippet.highlighted)
+'''
+################################################################################
+
+# 위의 SnippetList, SnippetDetail, SnippetHighlight 클래스를 모두 viewset 으로 묶음
+class SnippetViewSet(viewsets.ModelViewSet):
+	# 읽기 기능과 쓰기 기능을 모두 지원하기 위해 ModelViewSet 클래스를 사용
+	"""
+	이 뷰셋은 `list`와 `create`, `retrieve`, `update`, 'destroy` 기능을 자동으로 지원합니다
+
+	여기에 `highlight` 기능의 코드만 추가로 작성했습니다
+	"""
+	queryset = Snippet.objects.all()
+	serializer_class = SnippetSerializer
+	permission_classes = (permissions.IsAuthenticatedOrReadOnly,
+							IsOwnerOrReadOnly,)
+
+	@detail_route(renderer_classes=[renderers.StaticHTMLRenderer])
+	# 해당 장식자는 create나 update, delete에 해당하지 않는 기능에 대해 사용 가능, 기본적으로 GET 요청에 응답, methods 인자를 설정하면 POST 요청에도 응답
+	# URL은 기본적으로 메서드 이름과 같고, 이를 변경하고 싶다면 데코레이터에 url_path 인자를 설정하면 됨
+	def highlight(self, request, *args, **kwargs):
+		snippet = self.get_object()
+		return Response(snippet.highlighted)
+
+	def perform_create(self, serializer):
+		serializer.save(owner=self.request.user)
+		
+		
+		
+		
+		
+		
